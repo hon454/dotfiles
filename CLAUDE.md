@@ -2,7 +2,7 @@
 
 Personal dotfiles repository. Version-controlled configuration files for quick environment restoration on new machines.
 
-**All files in this repository, including CLAUDE.md, must be written in English.**
+**CLAUDE.md must be written in English.**
 
 ## Directory Structure
 

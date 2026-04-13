@@ -6,12 +6,20 @@ Personal dotfiles repository. Version-controlled configuration files for quick e
 
 ## Directory Structure
 
-Configuration files are organized into **per-tool directories**. Directory names use the tool name in lowercase.
+Each top-level directory is a **stow package**. The internal structure mirrors the home directory (`~`).
 
 ```
 dotfiles/
-├── claude/          # Claude Code
+├── claude/              # Claude Code
+│   └── .claude/
+└── zsh/                 # Zsh
+    └── .config/
+        └── zsh/
 ```
+
+## Symlink Management
+
+This repo uses [GNU Stow](https://www.gnu.org/software/stow/) for symlink management. Apply packages with `stow -t ~ <package>`.
 
 ## Commit Convention
 
@@ -27,7 +35,9 @@ Use the tool directory name as scope: `feat(claude): add statusline script`
 
 ## Adding New Configurations
 
-1. Place configuration files in the corresponding tool directory
-2. Add the directory to the **Structure** section in README.md
-3. Document symlink commands and any additional setup steps in README.md
-4. Never commit sensitive information (API keys, tokens, etc.)
+1. Create a new top-level directory named after the tool (lowercase)
+2. Inside it, mirror the home directory path where the config file belongs
+3. Update the **Structure** sections in both README.md and CLAUDE.md
+4. Document any additional setup steps in README.md under the package
+5. Apply with `stow -t ~ <package>`
+6. Never commit sensitive information (API keys, tokens, etc.)

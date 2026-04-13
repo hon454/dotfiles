@@ -11,7 +11,6 @@ import time
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 
 SHOW_WORKTREE = True
-SHOW_EFFORT = True
 SHOW_RATE_LIMITS = True
 
 # Color thresholds: (yellow_start, red_start)
@@ -198,15 +197,6 @@ def build_line2(data):
     # Model
     model_name = data.get("model", {}).get("display_name", "?")
     parts.append(f"🤖 {model_name}")
-
-    # Thinking effort
-    if SHOW_EFFORT:
-        effort = None
-        thinking = data.get("thinking", {})
-        if isinstance(thinking, dict):
-            effort = thinking.get("effort")
-        if effort and effort != "default":
-            parts.append(f"🎯 {effort}")
 
     # Context usage
     ctx_pct = data.get("context_window", {}).get("used_percentage", 0) or 0

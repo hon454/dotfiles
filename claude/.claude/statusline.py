@@ -154,51 +154,47 @@ def build_line1(data, git_info):
     cwd = data.get("workspace", {}).get("current_dir", "")
     project = os.path.basename(cwd) if cwd else "?"
 
-    # Session name (if set via --name or /rename)
-    session_name = data.get("session_name")
-    if session_name:
-        parts = [f"📁 {project} ({session_name})"]
-    else:
-        parts = [f"📁 {project}"]
+    parts = [f"📁 {project}"]
 
-    # Branch + ahead/behind (hide when both are zero)
-    branch = git_info.get("branch", "?")
-    ahead = git_info.get("ahead", 0)
-    behind = git_info.get("behind", 0)
-    branch_str = f"🌿 {branch}"
-    if ahead or behind:
-        ab_parts = []
-        if ahead:
-            ab_parts.append(f"↑{ahead}")
-        if behind:
-            ab_parts.append(f"↓{behind}")
-        branch_str += " " + " ".join(ab_parts)
-    parts.append(branch_str)
+    if git_info:
+        # Branch + ahead/behind (hide when both are zero)
+        branch = git_info.get("branch", "?")
+        ahead = git_info.get("ahead", 0)
+        behind = git_info.get("behind", 0)
+        branch_str = f"🌿 {branch}"
+        if ahead or behind:
+            ab_parts = []
+            if ahead:
+                ab_parts.append(f"↑{ahead}")
+            if behind:
+                ab_parts.append(f"↓{behind}")
+            branch_str += " " + " ".join(ab_parts)
+        parts.append(branch_str)
 
-    # Worktree
-    if SHOW_WORKTREE:
-        worktree = data.get("workspace", {}).get("git_worktree")
-        if worktree:
-            parts.append(f"🌳 {worktree}")
+        # Worktree
+        if SHOW_WORKTREE:
+            worktree = data.get("workspace", {}).get("git_worktree")
+            if worktree:
+                parts.append(f"🌳 {worktree}")
 
-    # Git status
-    staged = git_info.get("staged", 0)
-    unstaged = git_info.get("unstaged", 0)
-    untracked = git_info.get("untracked", 0)
+        # Git status
+        staged = git_info.get("staged", 0)
+        unstaged = git_info.get("unstaged", 0)
+        untracked = git_info.get("untracked", 0)
 
-    lines_added = data.get("cost", {}).get("total_lines_added", 0) or 0
-    lines_removed = data.get("cost", {}).get("total_lines_removed", 0) or 0
+        lines_added = data.get("cost", {}).get("total_lines_added", 0) or 0
+        lines_removed = data.get("cost", {}).get("total_lines_removed", 0) or 0
 
-    is_clean = staged == 0 and unstaged == 0 and untracked == 0
-    no_line_changes = lines_added == 0 and lines_removed == 0
+        is_clean = staged == 0 and unstaged == 0 and untracked == 0
+        no_line_changes = lines_added == 0 and lines_removed == 0
 
-    if is_clean and no_line_changes:
-        parts.append("✓")
-    else:
-        if not is_clean:
-            parts.append(f"S:{staged} U:{unstaged} A:{untracked}")
-        if not no_line_changes:
-            parts.append(f"+{lines_added} -{lines_removed}")
+        if is_clean and no_line_changes:
+            parts.append("✓")
+        else:
+            if not is_clean:
+                parts.append(f"S:{staged} U:{unstaged} A:{untracked}")
+            if not no_line_changes:
+                parts.append(f"+{lines_added} -{lines_removed}")
 
     return " | ".join(parts)
 
@@ -285,7 +281,9 @@ def main():
     cwd = data.get("workspace", {}).get("current_dir", os.getcwd())
     session_id = data.get("session_id", "default")
 
-    git_info = get_git_info(cwd, session_id)
+    # Only fetch git info when inside a git repository
+    is_git_repo = _run_git(cwd, "rev-parse", "--is-inside-work-tree") == "true"
+    git_info = get_git_info(cwd, session_id) if is_git_repo else None
 
     line1 = build_line1(data, git_info)
     line2 = build_line2(data)

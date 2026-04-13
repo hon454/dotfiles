@@ -68,7 +68,10 @@ stow -D -t ~ claude
 
 #### Claude Code
 
-커스텀 statusline 스크립트. 프로젝트/Git 상태, 모델, 컨텍스트 사용량, 비용, 레이트 리밋을 2줄로 표시한다.
+커스텀 statusline 스크립트. 2줄 레이아웃으로 세션 정보를 표시한다.
+
+- **Line 1**: 프로젝트명, 세션 이름, Git 브랜치/ahead·behind, worktree, staged/unstaged/untracked, 라인 변경량
+- **Line 2**: 모델명, 에이전트명, 컨텍스트 사용량(토큰 수 + 퍼센트 + 캐시율), 세션 비용, 레이트 리밋(5h/7d)
 
 `~/.claude/settings.json`에 아래 설정을 추가한다:
 

@@ -154,13 +154,26 @@ def build_line1(data, git_info):
     cwd = data.get("workspace", {}).get("current_dir", "")
     project = os.path.basename(cwd) if cwd else "?"
 
-    parts = [f"📁 {project}"]
+    # Session name (if set via --name or /rename)
+    session_name = data.get("session_name")
+    if session_name:
+        parts = [f"📁 {project} ({session_name})"]
+    else:
+        parts = [f"📁 {project}"]
 
-    # Branch + ahead/behind
+    # Branch + ahead/behind (hide when both are zero)
     branch = git_info.get("branch", "?")
     ahead = git_info.get("ahead", 0)
     behind = git_info.get("behind", 0)
-    parts.append(f"🌿 {branch} ↑{ahead} ↓{behind}")
+    branch_str = f"🌿 {branch}"
+    if ahead or behind:
+        ab_parts = []
+        if ahead:
+            ab_parts.append(f"↑{ahead}")
+        if behind:
+            ab_parts.append(f"↓{behind}")
+        branch_str += " " + " ".join(ab_parts)
+    parts.append(branch_str)
 
     # Worktree
     if SHOW_WORKTREE:
@@ -190,6 +203,15 @@ def build_line1(data, git_info):
     return " | ".join(parts)
 
 
+def _format_tokens(count):
+    """Format token count in human-readable form (e.g. 24k, 1.2M)."""
+    if count >= 1_000_000:
+        return f"{count / 1_000_000:.1f}M"
+    if count >= 1_000:
+        return f"{count / 1_000:.0f}k"
+    return str(count)
+
+
 def build_line2(data):
     """Build Line 2: Model + Resources."""
     parts = []
@@ -198,9 +220,20 @@ def build_line2(data):
     model_name = data.get("model", {}).get("display_name", "?")
     parts.append(f"🤖 {model_name}")
 
-    # Context usage
-    ctx_pct = data.get("context_window", {}).get("used_percentage", 0) or 0
-    usage = data.get("context_window", {}).get("current_usage", {})
+    # Agent name (if running with --agent)
+    agent_name = data.get("agent", {}).get("name") if data.get("agent") else None
+    if agent_name:
+        parts.append(f"🕵️ {agent_name}")
+
+    # Context usage with token counts
+    ctx = data.get("context_window", {})
+    ctx_pct = ctx.get("used_percentage", 0) or 0
+    total_input = ctx.get("total_input_tokens", 0) or 0
+    total_output = ctx.get("total_output_tokens", 0) or 0
+    ctx_size = ctx.get("context_window_size", 0) or 0
+    total_tokens = total_input + total_output
+
+    usage = ctx.get("current_usage") or {}
     cache_read = usage.get("cache_read_input_tokens", 0) or 0
     cache_create = usage.get("cache_creation_input_tokens", 0) or 0
     cache_total = cache_read + cache_create
@@ -208,7 +241,8 @@ def build_line2(data):
 
     bar = progress_bar(ctx_pct, PROGRESS_BAR_WIDTH, CONTEXT_THRESHOLDS)
     colored_pct = color(ctx_pct, CONTEXT_THRESHOLDS)
-    parts.append(f"🧠 {bar} {colored_pct}% (cache {cache_pct}%)")
+    token_str = f"{_format_tokens(total_tokens)}/{_format_tokens(ctx_size)}" if ctx_size else ""
+    parts.append(f"🧠 {bar} {colored_pct}% ({token_str} cache {cache_pct}%)")
 
     # Session cost
     cost = data.get("cost", {}).get("total_cost_usd", 0) or 0

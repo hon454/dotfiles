@@ -239,7 +239,8 @@ def build_line2(data):
     usage = ctx.get("current_usage") or {}
     cache_read = usage.get("cache_read_input_tokens", 0) or 0
     cache_create = usage.get("cache_creation_input_tokens", 0) or 0
-    cache_total = cache_read + cache_create
+    fresh_input = usage.get("input_tokens", 0) or 0
+    cache_total = fresh_input + cache_read + cache_create
     cache_pct = round(cache_read / cache_total * 100) if cache_total > 0 else 0
 
     bar = progress_bar(ctx_pct, PROGRESS_BAR_WIDTH, CONTEXT_THRESHOLDS)
@@ -295,7 +296,7 @@ def _fetch_codex_usage():
         req = urllib.request.Request(CODEX_USAGE_API)
         req.add_header("Authorization", f"Bearer {access_token}")
         req.add_header("ChatGPT-Account-Id", account_id)
-        resp = urllib.request.urlopen(req, timeout=5)
+        resp = urllib.request.urlopen(req, timeout=2)
         return json.loads(resp.read())
     except Exception:
         return None
@@ -305,12 +306,14 @@ def get_codex_usage(session_id):
     """Get Codex usage with caching. Returns None if Codex CLI is not installed."""
     cache_file = f"/tmp/statusline-codex-cache-{session_id}"
 
+    stale = None
     try:
         if os.path.exists(cache_file):
+            with open(cache_file, "r") as f:
+                stale = json.loads(f.read())
             mtime = os.path.getmtime(cache_file)
             if time.time() - mtime < CODEX_CACHE_MAX_AGE:
-                with open(cache_file, "r") as f:
-                    return json.loads(f.read())
+                return stale
     except Exception:
         pass
 
@@ -318,6 +321,8 @@ def get_codex_usage(session_id):
         return None
 
     info = _fetch_codex_usage()
+    if info is None:
+        return stale
 
     try:
         with open(cache_file, "w") as f:

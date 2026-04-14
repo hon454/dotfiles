@@ -95,7 +95,15 @@ codex login
 
 #### Zsh
 
-Oh My Zsh 업데이트 설정과 cmux 에일리어스. `.zshrc`에 아래 두 줄을 추가한다:
+Oh My Zsh 업데이트 설정과 터미널 전용 에일리어스.
+
+**터미널별 alias:**
+
+| 터미널 | 필요 조건 | alias |
+|---|---|---|
+| [cmux](https://cmux.com/ko) | cmux 설치 | `cc`, `ccc`, `ccr`, `ccw` |
+
+`.zshrc`에 아래 두 줄을 추가한다:
 
 ```bash
 source ~/.config/zsh/omz.zsh    # Oh My Zsh source 라인 위에 추가

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude Code custom status line — 2-line layout with project/git + model/resources."""
+"""Claude Code custom status line — 3-line layout with project/git + model/resources + codex limits."""
 
 import hashlib
 import json
@@ -7,11 +7,18 @@ import os
 import subprocess
 import sys
 import time
+import urllib.request
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 
 SHOW_WORKTREE = True
 SHOW_RATE_LIMITS = True
+SHOW_CODEX_LIMITS = True
+
+# Codex
+CODEX_AUTH_FILE = os.path.expanduser("~/.codex/auth.json")
+CODEX_USAGE_API = "https://chatgpt.com/backend-api/wham/usage"
+CODEX_CACHE_MAX_AGE = 60  # seconds
 
 # Color thresholds: (yellow_start, red_start)
 CONTEXT_THRESHOLDS = (50, 75)
@@ -267,6 +274,98 @@ def build_line2(data):
     return " | ".join(parts)
 
 
+# ─── CODEX ───────────────────────────────────────────────────────────────────
+
+
+def _fetch_codex_usage():
+    """Fetch real-time Codex usage from the ChatGPT API."""
+    try:
+        with open(CODEX_AUTH_FILE, "r") as f:
+            auth = json.load(f)
+    except Exception:
+        return None
+
+    tokens = auth.get("tokens", {})
+    access_token = tokens.get("access_token")
+    account_id = tokens.get("account_id")
+    if not access_token or not account_id:
+        return None
+
+    try:
+        req = urllib.request.Request(CODEX_USAGE_API)
+        req.add_header("Authorization", f"Bearer {access_token}")
+        req.add_header("ChatGPT-Account-Id", account_id)
+        resp = urllib.request.urlopen(req, timeout=5)
+        return json.loads(resp.read())
+    except Exception:
+        return None
+
+
+def get_codex_usage(session_id):
+    """Get Codex usage with caching. Returns None if Codex CLI is not installed."""
+    cache_file = f"/tmp/statusline-codex-cache-{session_id}"
+
+    try:
+        if os.path.exists(cache_file):
+            mtime = os.path.getmtime(cache_file)
+            if time.time() - mtime < CODEX_CACHE_MAX_AGE:
+                with open(cache_file, "r") as f:
+                    return json.loads(f.read())
+    except Exception:
+        pass
+
+    if not os.path.exists(CODEX_AUTH_FILE):
+        return None
+
+    info = _fetch_codex_usage()
+
+    try:
+        with open(cache_file, "w") as f:
+            f.write(json.dumps(info))
+    except Exception:
+        pass
+
+    return info
+
+
+def build_line3(codex_usage):
+    """Build Line 3: Codex rate limits."""
+    if not codex_usage:
+        return None
+
+    rate_limit = codex_usage.get("rate_limit", {})
+    if not rate_limit:
+        return None
+
+    parts = ["🔷 Codex"]
+
+    plan_type = codex_usage.get("plan_type")
+    if plan_type:
+        parts[0] += f" ({plan_type})"
+
+    primary = rate_limit.get("primary_window")
+    if primary and primary.get("used_percent") is not None:
+        pct = primary["used_percent"]
+        window_secs = primary.get("limit_window_seconds", 18000)
+        hours = window_secs // 3600
+        reset = primary.get("reset_at")
+        colored_pct = color(pct, RATE_LIMIT_THRESHOLDS)
+        countdown = format_countdown(reset)
+        parts.append(f"⏱️ {hours}h {colored_pct}% ({countdown})")
+
+    secondary = rate_limit.get("secondary_window")
+    if secondary and secondary.get("used_percent") is not None:
+        pct = secondary["used_percent"]
+        window_secs = secondary.get("limit_window_seconds", 604800)
+        days = window_secs // 86400
+        reset = secondary.get("reset_at")
+        colored_pct = color(pct, RATE_LIMIT_THRESHOLDS)
+        countdown = format_countdown(reset)
+        parts.append(f"📅 {days}d {colored_pct}% ({countdown})")
+
+    return " | ".join(parts)
+
+
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 
 
@@ -290,6 +389,12 @@ def main():
 
     print(line1)
     print(line2)
+
+    if SHOW_CODEX_LIMITS:
+        codex_usage = get_codex_usage(session_id)
+        line3 = build_line3(codex_usage)
+        if line3:
+            print(line3)
 
 
 if __name__ == "__main__":

@@ -68,10 +68,18 @@ stow -D -t ~ claude
 
 #### Claude Code
 
-커스텀 statusline 스크립트. 2줄 레이아웃으로 세션 정보를 표시한다.
+커스텀 statusline 스크립트. 3줄 레이아웃으로 세션 정보를 표시한다.
 
-- **Line 1**: 프로젝트명, 세션 이름, Git 브랜치/ahead·behind, worktree, staged/unstaged/untracked, 라인 변경량
+- **Line 1**: 프로젝트명, Git 브랜치/ahead·behind, worktree, staged/unstaged/untracked, 라인 변경량
 - **Line 2**: 모델명, 에이전트명, 컨텍스트 사용량(토큰 수 + 퍼센트 + 캐시율), 세션 비용, 레이트 리밋(5h/7d)
+- **Line 3**: Codex CLI 실시간 레이트 리밋(5h/7d) — [Codex CLI](https://github.com/openai/codex)가 설치되고 로그인(`codex login`)되어 있을 때만 표시
+
+Line 3(Codex 리밋)을 사용하려면 [Codex CLI](https://github.com/openai/codex)가 설치되고 로그인되어 있어야 한다(`~/.codex/auth.json` 필요). 인증 정보가 없으면 자동으로 숨겨진다.
+
+```bash
+npm install -g @openai/codex
+codex login
+```
 
 `~/.claude/settings.json`에 아래 설정을 추가한다:
 

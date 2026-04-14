@@ -231,14 +231,15 @@ def build_line2(data):
     # Context usage with token counts
     ctx = data.get("context_window", {})
     ctx_pct = ctx.get("used_percentage", 0) or 0
-    total_input = ctx.get("total_input_tokens", 0) or 0
-    total_output = ctx.get("total_output_tokens", 0) or 0
     ctx_size = ctx.get("context_window_size", 0) or 0
-    total_tokens = total_input + total_output
+    usage = ctx.get("current_usage") or {}
+    used_tokens = (usage.get("input_tokens", 0) or 0) + \
+                  (usage.get("cache_creation_input_tokens", 0) or 0) + \
+                  (usage.get("cache_read_input_tokens", 0) or 0)
 
     bar = progress_bar(ctx_pct, PROGRESS_BAR_WIDTH, CONTEXT_THRESHOLDS)
     colored_pct = color(ctx_pct, CONTEXT_THRESHOLDS)
-    token_str = f"{_format_tokens(total_tokens)}/{_format_tokens(ctx_size)}" if ctx_size else ""
+    token_str = f"{_format_tokens(used_tokens)}/{_format_tokens(ctx_size)}" if ctx_size else ""
     parts.append(f"🧠 {bar} {colored_pct}% ({token_str})")
 
     # Session cost

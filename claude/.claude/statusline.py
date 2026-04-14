@@ -236,17 +236,10 @@ def build_line2(data):
     ctx_size = ctx.get("context_window_size", 0) or 0
     total_tokens = total_input + total_output
 
-    usage = ctx.get("current_usage") or {}
-    cache_read = usage.get("cache_read_input_tokens", 0) or 0
-    cache_create = usage.get("cache_creation_input_tokens", 0) or 0
-    fresh_input = usage.get("input_tokens", 0) or 0
-    cache_total = fresh_input + cache_read + cache_create
-    cache_pct = round(cache_read / cache_total * 100) if cache_total > 0 else 0
-
     bar = progress_bar(ctx_pct, PROGRESS_BAR_WIDTH, CONTEXT_THRESHOLDS)
     colored_pct = color(ctx_pct, CONTEXT_THRESHOLDS)
     token_str = f"{_format_tokens(total_tokens)}/{_format_tokens(ctx_size)}" if ctx_size else ""
-    parts.append(f"🧠 {bar} {colored_pct}% ({token_str} cache {cache_pct}%)")
+    parts.append(f"🧠 {bar} {colored_pct}% ({token_str})")
 
     # Session cost
     cost = data.get("cost", {}).get("total_cost_usd", 0) or 0
